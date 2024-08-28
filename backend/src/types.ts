@@ -15,12 +15,63 @@ export interface UploadResponseOK {
   measure_uuid: string;
 }
 
-export interface UploadResponseBadRequest {
+export interface UploadResponseError {
   error_code: ErrorCodeType;
   error_description: string;
 }
 
-export interface UploadResponseConflict {
-  error_code: ErrorCodeType;
+export interface UploadResponseBadRequest extends UploadResponseError {}
+
+export interface UploadResponseConflict extends UploadResponseError {}
+
+export type ConfirmErrorCodeType =
+  | "INVALID_DATA"
+  | "MEASURE_NOT_FOUND"
+  | "CONFIRMATION_DUPLICATE";
+export interface ConfirmRequestBody {
+  measure_uuid: string;
+  confirmed_value: string;
+}
+
+export interface ConfirmResponseOK {
+  success: boolean;
+}
+
+export interface ConfirmResponseError {
+  error_code: ConfirmErrorCodeType;
+  error_description: string | any[];
+}
+
+export interface ConfirmResponseBadRequest extends ConfirmResponseError {}
+
+export interface ConfirmResponseNotFound extends ConfirmResponseError {}
+
+export interface ConfirmResponseConflict extends ConfirmResponseError {}
+
+export interface CustomerCodeListMeasure {
+  measure_uuid: string;
+  measure_datetime: Date;
+  measure_type: string;
+  has_confirmed: boolean;
+  image_url: string;
+}
+
+export interface CustomerCodeListResponse {
+  customer_code: string;
+  measures: CustomerCodeListMeasure[];
+}
+
+export type CustomerCodeListErrorCodeType =
+  | "INVALID_TYPE"
+  | "MEASURES_NOT_FOUND";
+
+export interface CustomerCodeListResponseError {
+  error_code: CustomerCodeListErrorCodeType;
   error_description: string;
 }
+
+export interface CustomerCodeListResponseBadRequest
+  extends CustomerCodeListResponseError {}
+
+export interface CustomerCodeListResponseNotFound
+  extends CustomerCodeListResponseError {}
