@@ -18,11 +18,11 @@ export const uploadValidator = () =>
           if (!imageIsBase64) throw new Error("Image not is Base64.");
         },
       },
-      errorMessage: "Image is required.",
+      errorMessage: "Image required.",
     },
     customer_code: {
       notEmpty: true,
-      errorMessage: "Customer code is required.",
+      errorMessage: "Customer code required.",
     },
     measure_datetime: {
       notEmpty: true,
@@ -33,7 +33,7 @@ export const uploadValidator = () =>
           if (isNaN(unixTime)) throw new Error("Measure datetime invalid.");
         },
       },
-      errorMessage: "Measure datetime is required.",
+      errorMessage: "Measure datetime required.",
     },
     measure_type: {
       notEmpty: true,
@@ -42,6 +42,20 @@ export const uploadValidator = () =>
           console.log("MeasureType", value);
         },
       },
-      errorMessage: "Measure type is required.",
+      errorMessage: "Measure type required.",
+    },
+  });
+
+export const confirmValidtor = () =>
+  checkSchema({
+    measure_uuid: {
+      notEmpty: true,
+      isAlphanumeric: true,
+      errorMessage: "Measure UUID required.",
+    },
+    confirmed_value: {
+      notEmpty: true,
+      isNumeric: true,
+      errorMessage: "Confirm value required.",
     },
   });
