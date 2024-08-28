@@ -1,0 +1,30 @@
+services:
+  postgres:
+    image: "postgres:latest"
+    environment:
+      - POSTGRES_PASSWORD=postgres_password
+  backend:
+    build: 
+      context: "./backend"
+      dockerfile: Dockerfile
+    container_name: backend
+    ports:
+      - "3005:3005"
+    volumes:
+      - ./backend:/usr/backend
+    depends_on:
+      - postgres
+    environment:
+      - PGUSER=postgres
+      - PGHOST=postgres
+      - PGDATABASE=postgres
+      - PGPASSWORD=postgres_password
+      - PGPORT=5432
+    restart: always
+  frontend:
+    build: 
+      context: "./frontend"
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    stdin_open: true
