@@ -48,7 +48,6 @@ export const confirmValidtor = () =>
   checkSchema({
     measure_uuid: {
       notEmpty: true,
-      isAlphanumeric: true,
       errorMessage: "Measure UUID required.",
     },
     confirmed_value: {
