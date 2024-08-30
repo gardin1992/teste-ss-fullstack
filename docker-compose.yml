@@ -1,30 +1,42 @@
 services:
   postgres:
-    image: "postgres:latest"
+    image: "bitnami/postgresql:latest"
+    ports:
+      - "2345:5432"
     environment:
-      - POSTGRES_PASSWORD=postgres_password
+      - POSTGRES_USER=docker
+      - POSTGRES_PASSWORD=docker
+      - POSTGRES_DB=polls
+    volumes:
+      - polls_pg_data:/bitnami/postgresql
   backend:
-    build: 
+    build:
       context: "./backend"
       dockerfile: Dockerfile
-    container_name: backend
+    container_name: teste-ss-fullstack-backend
+    env_file: "./backend/.env"
     ports:
       - "3005:3005"
     volumes:
       - ./backend:/usr/backend
     depends_on:
       - postgres
-    environment:
-      - PGUSER=postgres
-      - PGHOST=postgres
-      - PGDATABASE=postgres
-      - PGPASSWORD=postgres_password
-      - PGPORT=5432
+    # environment:
+      # - DB_HOST=postgresdb
+      # - DB_USER=$POSTGRESDB_USER
+      # - DB_PASSWORD=$POSTGRESDB_ROOT_PASSWORD
+      # - DB_NAME=$POSTGRESDB_DATABASE
+      # - DB_PORT=$POSTGRESDB_DOCKER_PORT
+      #DATABASE_URL: "postgresql://docker:docker@db:2345/mydb?schema=public"
     restart: always
   frontend:
-    build: 
+    build:
       context: "./frontend"
       dockerfile: Dockerfile
+    container_name: teste-ss-fullstack-frontend
     ports:
       - "3000:3000"
     stdin_open: true
+
+volumes:
+  polls_pg_data:
