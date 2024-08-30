@@ -16,4 +16,6 @@ router.get("/", (req: Request, res: Response) => {
 
 app.use(router);
 
-app.listen(PORT, HOST);
+app.listen(PORT, HOST, () => {
+  console.log('backend started');
+});
