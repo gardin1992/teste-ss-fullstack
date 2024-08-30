@@ -14,28 +14,127 @@ import {
   UploadResponseOK,
 } from "../types";
 import { StatusCodes } from "http-status-codes";
+import { PrismaClient } from "@prisma/client";
+import { setDay, lastDayOfMonth } from "date-fns";
+import {
+  base64Decode,
+  getFullMimeTypeFromBase64,
+  getMimeTypeFromFullMimeType,
+  isValidMimeType,
+  rootDir,
+} from "../utils";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import {
+  GoogleAIFileManager,
+  UploadFileResponse,
+} from "@google/generative-ai/server";
+
+const prisma = new PrismaClient();
 
 class ApiController {
   async upload(req: Request<{}, {}, UploadRequestBody>, res: Response) {
-    const result = validationResult(req);
+    try {
+      const result = validationResult(req);
+      if (!result.isEmpty())
+        return res.status(StatusCodes.BAD_REQUEST).json({
+          error_code: "INVALID_DATA",
+          error_description: "descrição do erro",
+        } as UploadResponseBadRequest);
 
-    if (result.isEmpty()) {
+      if (!isValidMimeType(req.body.image))
+        return res.status(StatusCodes.BAD_REQUEST).json({
+          error_code: "INVALID_DATA",
+          error_description: "Tipo de imagem inválido.",
+        } as UploadResponseBadRequest);
+
+      const {
+        customer_code: customerCode,
+        measure_datetime: measureDatetime,
+        measure_type: measureType,
+        image,
+      } = req.body;
+
+      const currentDate = new Date(measureDatetime);
+      const lastDay = lastDayOfMonth(currentDate);
+      const firstDay = setDay(currentDate, 1);
+
+      const countMeasures = await prisma.measures.count({
+        where: {
+          customerCode,
+          measureType,
+          measureDatetime: {
+            lte: lastDay,
+            gte: firstDay,
+          },
+        },
+      });
+
+      if (countMeasures > 0)
+        return res.status(StatusCodes.CONFLICT).json({
+          error_code: "DOUBLE_REPORT",
+          error_description: "Leitura do mês já realizada",
+        } as UploadResponseConflict);
+
+      const mimeType = getFullMimeTypeFromBase64(image);
+      const pathname = `${rootDir}/uploads/${customerCode}${Date.now()}.${getMimeTypeFromFullMimeType(
+        mimeType
+      )}`;
+
+      base64Decode(image.split(";base64,").pop() ?? "", pathname);
+
+      const displayName =
+        measureType === "WATER" ? "Registro de água" : "Registro de gas";
+
+      const fileManager = new GoogleAIFileManager(
+        process.env.GEMINI_API_KEY ?? ""
+      );
+      const uploadResponse = await fileManager.uploadFile(pathname, {
+        mimeType,
+        displayName,
+      });
+
+      const tempImageUrl = uploadResponse.file.uri;
+
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY ?? "");
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+      const context = await model.generateContent([
+        {
+          fileData: {
+            mimeType: "image/jpeg",
+            fileUri: uploadResponse.file.uri,
+          },
+        },
+        { text: "Valor registrado" },
+      ]);
+
+      const text = context.response.text();
+      const measureValue = parseInt(text);
+      console.log("Valor extraido", parseInt(text));
+
+      // salvar como uma nova leitura não confirmada
+      const measure = await prisma.measures.create({
+        data: {
+          measureValue,
+          tempImageUrl,
+          customerCode,
+          measureDatetime: new Date(measureDatetime),
+          measureType,
+          //  remover campo
+          imageUrl: tempImageUrl,
+        },
+      });
+
       return res.status(StatusCodes.OK).json({
-        image_url: "string",
-        measure_value: 10,
-        measure_uuid: "string",
+        image_url: tempImageUrl,
+        measure_value: measureValue,
+        measure_uuid: measure.measureUuid,
       } as UploadResponseOK);
-    } else {
+    } catch (error: any) {
       return res.status(StatusCodes.BAD_REQUEST).json({
-        error_code: "INVALID_DATA",
-        error_description: "descrição do erro",
-      } as UploadResponseBadRequest);
+        error: error.message,
+      });
     }
-
-    return res.status(StatusCodes.CONFLICT).json({
-      error_code: "DOUBLE_REPORT",
-      error_description: "Leitura do mês já realizada",
-    } as UploadResponseConflict);
   }
 
   async confirm(req: Request<{}, {}, ConfirmRequestBody>, res: Response) {
