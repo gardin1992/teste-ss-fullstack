@@ -22,4 +22,5 @@ model Measures {
   imageUrl String   
   tempImageUrl String
   customerCode String @db.VarChar(36)
+  hasConfirmed Boolean @default(false)
 }
