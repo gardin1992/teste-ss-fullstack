@@ -168,6 +168,16 @@ class ApiController {
         error_description: "Leitura do mês já realizada",
       } as ConfirmResponseConflict);
 
+    await prisma.measures.update({
+      where: {
+        measureUuid: measure.measureUuid,
+      },
+      data: {
+        measureValue: confirmed_value,
+        hasConfirmed: true
+      },
+    });
+
     return res.status(StatusCodes.OK).json({
       success: true,
     } as ConfirmResponseOK);

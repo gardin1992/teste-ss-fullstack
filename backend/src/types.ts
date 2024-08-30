@@ -30,7 +30,7 @@ export type ConfirmErrorCodeType =
   | "CONFIRMATION_DUPLICATE";
 export interface ConfirmRequestBody {
   measure_uuid: string;
-  confirmed_value: string;
+  confirmed_value: number;
 }
 
 export interface ConfirmResponseOK {
