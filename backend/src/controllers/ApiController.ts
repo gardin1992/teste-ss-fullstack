@@ -3,6 +3,7 @@ import { validationResult } from "express-validator";
 import {
   ConfirmRequestBody,
   ConfirmResponseBadRequest,
+  ConfirmResponseConflict,
   ConfirmResponseNotFound,
   ConfirmResponseOK,
   CustomerCodeListResponse,
@@ -140,37 +141,79 @@ class ApiController {
   async confirm(req: Request<{}, {}, ConfirmRequestBody>, res: Response) {
     const result = validationResult(req);
 
-    if (result.isEmpty()) {
-      return res.status(StatusCodes.OK).json({
-        success: true,
-      } as ConfirmResponseOK);
+    if (!result.isEmpty()) {
+      const errorMessages = result.array().map((r) => r.msg);
+
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        error_code: "INVALID_DATA",
+        error_description: errorMessages,
+      } as ConfirmResponseBadRequest);
     }
 
-    const errorMessages = result.array().map((r) => r.msg);
+    const { measure_uuid, confirmed_value } = req.body;
 
-    return res.status(StatusCodes.BAD_REQUEST).json({
-      error_code: "INVALID_DATA",
-      error_description: errorMessages,
-    } as ConfirmResponseBadRequest);
+    const measure = await prisma.measures.findUnique({
+      where: { measureUuid: measure_uuid },
+    });
 
-    // return res.status(StatusCodes.NOT_FOUND).json({
-    //   error_code: "MEASURE_NOT_FOUND",
-    //   error_description: "Leitura do mês járealizada",
-    // } as ConfirmResponseNotFound);
+    if (!measure)
+      return res.status(StatusCodes.NOT_FOUND).json({
+        error_code: "MEASURE_NOT_FOUND",
+        error_description: "Leitura não encontrada",
+      } as ConfirmResponseNotFound);
+
+    if (measure.hasConfirmed)
+      return res.status(StatusCodes.CONFLICT).json({
+        error_code: "CONFIRMATION_DUPLICATE",
+        error_description: "Leitura do mês já realizada",
+      } as ConfirmResponseConflict);
+
+    return res.status(StatusCodes.OK).json({
+      success: true,
+    } as ConfirmResponseOK);
   }
 
   async customerCodeList(req: Request, res: Response) {
-    return res.status(StatusCodes.OK).json({} as CustomerCodeListResponse);
+    const { customer_code: customerCode } = req.params;
+    const { measure_type: measureType } = req.query;
 
-    return res.status(StatusCodes.BAD_REQUEST).json({
-      error_code: "INVALID_TYPE",
-      error_description: "errorMessages",
-    } as CustomerCodeListResponseBadRequest);
+    const where: any = {
+      customerCode,
+    };
 
-    return res.status(StatusCodes.NOT_FOUND).json({
-      error_code: "MEASURES_NOT_FOUND",
-      error_description: "",
-    } as CustomerCodeListResponseNotFound);
+    if (!!measureType) {
+      if (["WATER", "GAS"].includes(measureType?.toString())) {
+        where.measureType = measureType;
+      } else {
+        return res.status(StatusCodes.BAD_REQUEST).json({
+          error_code: "INVALID_TYPE",
+          error_description: "Tipo de medição não permitida.",
+        } as CustomerCodeListResponseBadRequest);
+      }
+    }
+
+    const measureFromCustomerCode = await prisma.measures.findMany({
+      where,
+    });
+
+    if (measureFromCustomerCode.length === 0)
+      return res.status(StatusCodes.NOT_FOUND).json({
+        error_code: "MEASURES_NOT_FOUND",
+        error_description: "Nenhuma leitura encontrada.",
+      } as CustomerCodeListResponseBadRequest);
+
+    const measures = measureFromCustomerCode.map((m) => ({
+      measure_uuid: m.measureUuid,
+      measure_datetime: m.measureDatetime,
+      measure_type: m.measureType,
+      has_confirmed: m.hasConfirmed,
+      image_url: m.imageUrl,
+    }));
+
+    return res.status(StatusCodes.OK).json({
+      customer_code: customerCode,
+      measures,
+    } as CustomerCodeListResponse);
   }
 }
 
