@@ -13,8 +13,6 @@ export const uploadValidator = () =>
             allowMime: true,
           });
 
-          console.log("imageIsBase64", imageIsBase64);
-
           if (!imageIsBase64) throw new Error("Image not is Base64.");
         },
       },
@@ -29,7 +27,6 @@ export const uploadValidator = () =>
       custom: {
         options: async (value) => {
           const unixTime = Date.parse(value);
-          console.log("unixTime", unixTime);
           if (isNaN(unixTime)) throw new Error("Measure datetime invalid.");
         },
       },
@@ -39,7 +36,8 @@ export const uploadValidator = () =>
       notEmpty: true,
       custom: {
         options: async (value: MeasureType) => {
-          console.log("MeasureType", value);
+          if (!["GAS", "WATER"].includes(value))
+            throw new Error("Invalid measure type");
         },
       },
       errorMessage: "Measure type required.",
