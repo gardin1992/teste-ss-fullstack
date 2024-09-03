@@ -14,7 +14,8 @@ estaram disponiveis para acesso e consumo
 
 ### Considerações
 
-Rodar o docker em ambiente de desenvolvimento veio a me causar muitas intempérias, haja vista que minha maquina não favorece esse tipo de desenvolvimento.
+- Estou fazendo a imersão Alura + Google em Google Gemini. 
+- Rodar o docker em ambiente de desenvolvimento veio a me causar muitas intempérias, haja vista que minha maquina não favorece esse tipo de desenvolvimento.
 
 ### Tarefas não concluidas
 
